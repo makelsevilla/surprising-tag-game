@@ -3,7 +3,7 @@ import sys
 
 # Define constants
 WIDTH, HEIGHT = 800, 600
-PLAYER_SIZE = 20
+# PLAYER_SIZE = 50 # Optional
 PLAYER_SPEED = 5
 
 # Define colors
@@ -12,28 +12,43 @@ RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 
 class Player(pygame.sprite.Sprite):
-    # keys [left, right, up, down]
-    def __init__(self, color, x, y, keys):
+    # keys {left, right, up, down}
+    def __init__(self, image_path, x, y, keys):
         super().__init__()
-        self.image = pygame.Surface((PLAYER_SIZE, PLAYER_SIZE))
-        self.image.fill(color)
+        # use pygame.transform.scale in self.image to resize the player
+        self.image = pygame.image.load(f"{image_path}/body.png").convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
         self.keys = keys
+        self.rotation_angle = 0 # Initial rotation angle
 
     def update(self, keys):
-        if keys[self.keys[0]]:
+        rotation_angle = 0
+
+        if keys[self.keys["left"]]:
             self.rect.x -= PLAYER_SPEED
-        if keys[self.keys[1]]:
+            rotation_angle -= 90
+
+        if keys[self.keys["right"]]:
             self.rect.x += PLAYER_SPEED
-        if keys[self.keys[2]]:
+            rotation_angle += 90
+
+        if keys[self.keys["up"]]:
             self.rect.y -= PLAYER_SPEED
-        if keys[self.keys[3]]:
+            rotation_angle -= 90
+
+        if keys[self.keys["down"]]:
             self.rect.y += PLAYER_SPEED
+            rotation_angle += 90
 
         # Ensure the player stays within the screen boundaries
-        self.rect.x = max(0, min(self.rect.x, WIDTH - PLAYER_SIZE))
-        self.rect.y = max(0, min(self.rect.y, HEIGHT - PLAYER_SIZE))
+        self.rect.x = max(0, min(self.rect.x, WIDTH - self.rect.width))
+        self.rect.y = max(0, min(self.rect.y, HEIGHT - self.rect.height))
+
+    def rotate(self, target_angle):
+        self.image = pygame.transform.rotate(self.image, target_angle)
+        self.rect = self.image.get_rect()
+        
 
 class Game:
     def __init__(self):
@@ -44,8 +59,8 @@ class Game:
         self.running = True
 
         # Create players
-        self.player1 = Player(RED, 100, 100, [pygame.K_a, pygame.K_d, pygame.K_w, pygame.K_s])
-        self.player2 = Player(BLUE, 700, 500, [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_DOWN])
+        self.player1 = Player("graphics/player-1", 100, 100, {"left": pygame.K_a, "right": pygame.K_d, "up": pygame.K_w, "down": pygame.K_s })
+        self.player2 = Player("graphics/player-1", 700, 500, {"left": pygame.K_LEFT, "right": pygame.K_RIGHT, "up": pygame.K_UP, "down": pygame.K_DOWN })
 
         # Create sprite groups
         self.all_sprites = pygame.sprite.Group(self.player1, self.player2)
@@ -76,7 +91,7 @@ class Game:
             pygame.display.flip()
 
             # Cap the frame rate
-            self.clock.tick(40)
+            self.clock.tick(60)
 
         pygame.quit()
         sys.exit()
