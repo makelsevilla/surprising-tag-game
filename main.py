@@ -13,42 +13,45 @@ BLUE = (0, 0, 255)
 
 class Player(pygame.sprite.Sprite):
     # keys {left, right, up, down}
-    def __init__(self, image_path, x, y, keys):
+    def __init__(self, image_path, x, y, keys, angle = 0):
         super().__init__()
         # use pygame.transform.scale in self.image to resize the player
         self.image = pygame.image.load(f"{image_path}/body.png").convert_alpha()
+        self.image = pygame.transform.rotate(self.image, angle)
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
         self.keys = keys
-        self.rotation_angle = 0 # Initial rotation angle
+        self.rotation_angle = angle # Initial rotation angle
 
     def update(self, keys):
-        rotation_angle = 0
+
 
         if keys[self.keys["left"]]:
             self.rect.x -= PLAYER_SPEED
-            rotation_angle -= 90
+            self.rotate(180)
 
         if keys[self.keys["right"]]:
             self.rect.x += PLAYER_SPEED
-            rotation_angle += 90
-
+            self.rotate(0)
+ 
         if keys[self.keys["up"]]:
             self.rect.y -= PLAYER_SPEED
-            rotation_angle -= 90
+            self.rotate(90)
 
         if keys[self.keys["down"]]:
             self.rect.y += PLAYER_SPEED
-            rotation_angle += 90
+            self.rotate(-90)
 
         # Ensure the player stays within the screen boundaries
         self.rect.x = max(0, min(self.rect.x, WIDTH - self.rect.width))
         self.rect.y = max(0, min(self.rect.y, HEIGHT - self.rect.height))
 
     def rotate(self, target_angle):
-        self.image = pygame.transform.rotate(self.image, target_angle)
-        self.rect = self.image.get_rect()
-        
+        angle_diff = target_angle - self.rotation_angle
+
+        self.image = pygame.transform.rotate(self.image, angle_diff)
+        self.rect = self.image.get_rect(center=self.rect.center)
+        self.rotation_angle = target_angle
 
 class Game:
     def __init__(self):
@@ -60,7 +63,7 @@ class Game:
 
         # Create players
         self.player1 = Player("graphics/player-1", 100, 100, {"left": pygame.K_a, "right": pygame.K_d, "up": pygame.K_w, "down": pygame.K_s })
-        self.player2 = Player("graphics/player-1", 700, 500, {"left": pygame.K_LEFT, "right": pygame.K_RIGHT, "up": pygame.K_UP, "down": pygame.K_DOWN })
+        self.player2 = Player("graphics/player-2", 700, 500, {"left": pygame.K_LEFT, "right": pygame.K_RIGHT, "up": pygame.K_UP, "down": pygame.K_DOWN }, -180)
 
         # Create sprite groups
         self.all_sprites = pygame.sprite.Group(self.player1, self.player2)
