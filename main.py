@@ -14,29 +14,25 @@ RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 
 class EffectObject(pygame.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, type = "debuff"):
         super().__init__()
 
         self.image = pygame.Surface((30, 30), pygame.SRCALPHA)
 
-        self.setTypeThenSpawn()
+        self.type = type
+        if type == "buff":
+            self.image.fill("Blue")
+        else:
+            self.image.fill("Red")
+
+        self.rect = self.image.get_rect()
+
+        self.spawn()
 
     def spawn(self):
         # Generate random position for the teleportation object
         self.rect.x = random.randint(0, WIDTH - self.rect.width)
         self.rect.y = random.randint(0, HEIGHT - self.rect.height)
-
-    def setTypeThenSpawn(self):
-        # set the type randomly
-        self.type = random.choice(["buff", "debuff"])
-        if self.type == "buff":
-            self.image.fill("Blue")
-            self.rect = self.image.get_rect()
-        else:
-            self.image.fill("Red")
-            self.rect = self.image.get_rect()
-
-        self.spawn()
 
 class TeleportationObject(pygame.sprite.Sprite):
     def __init__(self):
@@ -146,7 +142,7 @@ class Game:
             self.teleportation_objects.add(TeleportationObject())
 
         # Create effect objects
-        self.effect_objects = pygame.sprite.Group(EffectObject(), EffectObject())
+        self.effect_objects = pygame.sprite.Group(EffectObject("buff"), EffectObject("debuff"))
 
         # Create sprite groups
         self.all_sprites = pygame.sprite.Group(self.player1, self.player2, self.teleportation_objects, self.effect_objects)
@@ -180,7 +176,7 @@ class Game:
 
             # Check for collision between players
             if pygame.sprite.collide_rect(self.player1, self.player2):
-                print("Player 1 caught Player 2! Game Over.")
+                print("Game Over.")
                 self.running = False
 
             # Draw everything
