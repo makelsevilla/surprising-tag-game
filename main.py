@@ -5,13 +5,38 @@ import itertools
 
 # Define constants
 WIDTH, HEIGHT = 800, 600
-PLAYER_SPEED = 5
+PLAYER_SPEED = 3
 GAME_SPEED = 60 #fps
 
 # Define colors
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
+
+class EffectObject(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+
+        self.image = pygame.Surface((30, 30), pygame.SRCALPHA)
+
+        self.setTypeThenSpawn()
+
+    def spawn(self):
+        # Generate random position for the teleportation object
+        self.rect.x = random.randint(0, WIDTH - self.rect.width)
+        self.rect.y = random.randint(0, HEIGHT - self.rect.height)
+
+    def setTypeThenSpawn(self):
+        # set the type randomly
+        self.type = random.choice(["buff", "debuff"])
+        if self.type == "buff":
+            self.image.fill("Blue")
+            self.rect = self.image.get_rect()
+        else:
+            self.image.fill("Red")
+            self.rect = self.image.get_rect()
+
+        self.spawn()
 
 class TeleportationObject(pygame.sprite.Sprite):
     def __init__(self):
@@ -39,24 +64,32 @@ class Player(pygame.sprite.Sprite):
         self.keys = keys
         self.rotation_angle = angle # Initial rotation angle
 
+        # Initial player speed
+        self.speed = PLAYER_SPEED
+
+        # Added attributes for buff/debuff effect
+        self.effect_timer = 0
+        self.original_speed = PLAYER_SPEED
+
+
     def update(self, keys):
         target_rotation_angle = None
 
         if keys[self.keys["left"]]:
-            self.rect.x -= PLAYER_SPEED
+            self.rect.x -= self.speed
             # self.rotate(180)
             target_rotation_angle = 180
 
         if keys[self.keys["right"]]:
-            self.rect.x += PLAYER_SPEED
+            self.rect.x += self.speed
             target_rotation_angle = 0
  
         if keys[self.keys["up"]]:
-            self.rect.y -= PLAYER_SPEED
+            self.rect.y -= self.speed
             target_rotation_angle = 90
 
         if keys[self.keys["down"]]:
-            self.rect.y += PLAYER_SPEED
+            self.rect.y += self.speed
             target_rotation_angle = -90
 
         if target_rotation_angle is not None:
@@ -65,6 +98,14 @@ class Player(pygame.sprite.Sprite):
         # Ensure the player stays within the screen boundaries
         self.rect.x = max(0, min(self.rect.x, WIDTH - self.rect.width))
         self.rect.y = max(0, min(self.rect.y, HEIGHT - self.rect.height))
+
+        # Check if the player is currently under the effect of buff/debuff
+        if self.effect_timer > 0:
+            self.effect_timer -= 1
+            if self.effect_timer == 0:
+                # Revert the effect after the timer expires
+                self.speed = self.original_speed
+
 
     def rotate(self, target_angle):
         angle_diff = target_angle - self.rotation_angle
@@ -76,6 +117,16 @@ class Player(pygame.sprite.Sprite):
         # Teleport the player to a random position on the screen
         self.rect.x = random.randint(0, WIDTH - self.rect.width)
         self.rect.y = random.randint(0, HEIGHT - self.rect.height)
+
+    def applyEffect(self, type):
+        if type == "debuff":
+            self.speed = self.speed / 2
+        else:
+            self.speed = self.speed * 2
+
+            
+        # Set the timer for the effect duration (2 seconds)
+        self.effect_timer = 2 * GAME_SPEED
 
 class Game:
     def __init__(self):
@@ -91,11 +142,14 @@ class Game:
 
         # Create teleportation objects
         self.teleportation_objects = pygame.sprite.Group()
-        for i in range(10):
+        for i in range(5):
             self.teleportation_objects.add(TeleportationObject())
 
+        # Create effect objects
+        self.effect_objects = pygame.sprite.Group(EffectObject(), EffectObject())
+
         # Create sprite groups
-        self.all_sprites = pygame.sprite.Group(self.player1, self.player2, self.teleportation_objects)
+        self.all_sprites = pygame.sprite.Group(self.player1, self.player2, self.teleportation_objects, self.effect_objects)
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -103,11 +157,17 @@ class Game:
                 self.running = False
 
         # Check for collisions between players and teleportation objects
-        for player, teleportation_object in itertools.product([self.player1, self.player2], self.teleportation_objects):
+        for player, teleportation_object, effect_object in itertools.product([self.player1, self.player2], self.teleportation_objects, self.effect_objects):
             if pygame.sprite.collide_rect(player, teleportation_object):
                 player.teleport()
                 teleportation_object.spawn()
 
+            if pygame.sprite.collide_rect(player, effect_object):
+                player = random.choice([self.player1, self.player2])
+                player.applyEffect(effect_object.type)
+                effect_object.spawn()
+
+            
     def run(self):
         while self.running:
             self.handle_events()
